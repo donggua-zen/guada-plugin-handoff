@@ -1,0 +1,12 @@
+{
+  "id": "handoff",
+  "name": "任务交接",
+  "version": "0.1.0",
+  "description": "注册 /handoff 命令，让当前 AI 生成任务交接文件 HANDOFF.md",
+  "author": "donggua-zen",
+  "category": "user",
+  "main": "index.js",
+  "apiVersion": 2,
+  "icon": "assets/icon.svg",
+  "permissions": ["prompt"]
+}
