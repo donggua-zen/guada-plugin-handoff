@@ -6,7 +6,21 @@ MVP 版只做「命令 → 注入指令 → AI 用内置 `write` 写文件」，
 
 ## 安装
 
-### 方式一：本地源码安装（开发推荐）
+### 插件市场（推荐）
+
+设置 → 插件 → 市场 → 搜索「任务交接」→ 安装并启用。
+
+安装源：
+
+```text
+github:donggua-zen/guada-plugin-handoff#main
+```
+
+也可以在「设置 → 插件 → 从来源安装」中直接粘贴上面的安装源。
+
+`category` 为 `user`，安装后默认关闭，需要在插件列表里手动启用。
+
+### 本地源码安装（开发）
 
 ```http
 POST /api/v1/plugins/install
@@ -15,27 +29,7 @@ Content-Type: application/json
 { "source": "local:D:/AI/guada_plugins/guada-plugin-handoff" }
 ```
 
-安装后会复制到用户插件目录（开发环境通常是 `~/.guada-dev/plugins/handoff`），并在「设置 → 插件」中出现「任务交接」。
-
-`category` 为 `user`，默认是关闭的，需要手动启用。
-
-### 方式二：设置页安装
-
-设置 → 插件 → 从来源安装，填入：
-
-```text
-local:D:/AI/guada_plugins/guada-plugin-handoff
-```
-
-### 方式三：插件市场（普通用户推荐）
-
-设置 → 插件 → 市场 → 搜索「任务交接」→ 安装并启用。
-
-市场安装源：
-
-```text
-github:donggua-zen/guada-plugin-handoff#main
-```
+仅适用于本机开发；安装后会复制到用户插件目录（开发环境通常是 `~/.guada-dev/plugins/handoff`）。
 
 ## 使用
 
