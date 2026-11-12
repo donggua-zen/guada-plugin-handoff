@@ -27,6 +27,16 @@ Content-Type: application/json
 local:D:/AI/guada_plugins/guada-plugin-handoff
 ```
 
+### 方式三：插件市场（普通用户推荐）
+
+设置 → 插件 → 市场 → 搜索「任务交接」→ 安装并启用。
+
+市场安装源：
+
+```text
+github:donggua-zen/guada-plugin-handoff#main
+```
+
 ## 使用
 
 ### 方式一：命令面板（推荐）
@@ -103,6 +113,8 @@ POST /api/v1/plugins/reload/handoff
 ```
 
 或者卸载后重新安装。
+
+市场安装的副本 `.gd-source` 为 `github:donggua-zen/guada-plugin-handoff#main`，同样用上面的 `update` 接口拉取最新 `main`。
 
 ## 限制（MVP）
 
