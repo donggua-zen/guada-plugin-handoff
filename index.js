@@ -3,16 +3,16 @@
 /**
  * 任务交接插件（MVP）
  *
- * 只做一件事：注册 /handoff 命令，把一段固定的交接指令注入给当前 AI。
+ * 只做一件事：在 / 命令面板注册「任务交接」，把一段固定的交接指令注入给当前 AI。
  * AI 收到指令后，用内置 write 工具把交接文档写到工作区根目录的 HANDOFF.md。
  *
- * 本版刻意不注册任何工具、不读写文件、不做校验/增强，先把流程跑通。
+ * 触发方式只有命令面板：
+ *   registerCommandProvider 的 parse() 返回 appendix，由宿主作为 origin='system'
+ *   注入块随用户消息落库。
  *
- * 两条触发路径共用同一个 INSTRUCTION：
- *   1) 命令面板：registerCommandProvider 的 parse() 返回 appendix，由宿主
- *      作为 origin='system' 注入块随用户消息落库；
- *   2) 直接输入 /handoff：agent.pre_step 钩子检测最后一条真实用户消息，
- *      用 injectUserPrompt() 注入一条隐藏 user 消息。
+ * 直接输入 /handoff 是刻意不支持的：它会被当作普通文本，避免和普通字符串混淆。
+ *
+ * 本版刻意不注册任何工具、不读写文件、不做校验/增强，先把流程跑通。
  */
 
 const PLUGIN_ID = "handoff";
@@ -53,25 +53,12 @@ const INSTRUCTION = `用户刚刚触发了「任务交接」命令。请基于�
 
 写完后，用一两句话告诉用户 HANDOFF.md 已生成，并附上相对路径；不要重复文档全文。`;
 
-/** 取出消息里的纯文本（忽略 reasoning / tool-call / tool-result 等块） */
-function extractText(message) {
-  if (!message || !Array.isArray(message.content)) return "";
-  return message.content
-    .filter(
-      (block) =>
-        block && block.type === "text" && typeof block.text === "string",
-    )
-    .map((block) => block.text)
-    .join("\n")
-    .trim();
-}
-
 class HandoffPlugin {
   constructor() {
     this.manifest = {
       id: PLUGIN_ID,
       name: "任务交接",
-      version: "0.1.0",
+      version: "0.1.1",
       description: "注册 /handoff 命令，让当前 AI 生成任务交接文件 HANDOFF.md",
       author: "donggua-zen",
       category: "user",
@@ -84,7 +71,6 @@ class HandoffPlugin {
 
   async onLoad(api) {
     this.registerCommand(api);
-    this.registerTypedCommandHook(api);
   }
 
   /** 命令面板：输入 / 时出现「任务交接」，选中后插入 [/handoff:handoff] 标签 */
@@ -106,74 +92,6 @@ class HandoffPlugin {
           return undefined;
         }
         return { replacement: "", appendix: INSTRUCTION };
-      },
-    });
-  }
-
-  /**
-   * 直接输入 /handoff 的兼容路径。
-   *
-   * 宿主目前只对 /workflow 做了“斜杠转标签”的硬编码归一化，第三方插件
-   * 无法扩展；这里用 pre_step 钩子在首次模型请求前注入同样的指令。
-   *
-   * 幂等：同一轮里注入过之后，历史中会出现一条 hidden + source.plugin=handoff
-   * 的消息；之后每次 pre_step 都能检测到并跳过。
-   */
-  registerTypedCommandHook(api) {
-    api.registerHook({
-      event: "agent.pre_step",
-      order: 900,
-      handler: async (payload) => {
-        try {
-          const ctx = payload && payload.sessionContext;
-          if (!ctx || ctx.sessionType !== "web") return;
-
-          const history = await ctx.getHistory();
-          if (!Array.isArray(history) || history.length === 0) return;
-
-          // 最后一条“真实用户消息”（跳过插件注入的 hidden 消息）
-          let lastUserIdx = -1;
-          for (let i = history.length - 1; i >= 0; i -= 1) {
-            const msg = history[i];
-            if (
-              msg &&
-              msg.role === "user" &&
-              !(msg.metadata && msg.metadata.hidden)
-            ) {
-              lastUserIdx = i;
-              break;
-            }
-          }
-          if (lastUserIdx < 0) return;
-
-          const text = extractText(history[lastUserIdx]);
-          if (!/^\s*\/handoff(?:\s|$)/i.test(text)) return;
-
-          const alreadyInjected = history
-            .slice(lastUserIdx + 1)
-            .some(
-              (msg) =>
-                msg &&
-                msg.role === "user" &&
-                msg.metadata &&
-                msg.metadata.hidden &&
-                msg.source &&
-                msg.source.plugin === PLUGIN_ID,
-            );
-          if (alreadyInjected) return;
-
-          await ctx.injectUserPrompt(
-            `<system_reminder>\n${INSTRUCTION}\n</system_reminder>`,
-            PLUGIN_ID,
-          );
-        } catch (error) {
-          // 钩子是增强项，失败不能打断主流程
-          console.warn(
-            `[handoff] pre_step hook failed: ${
-              error && error.message ? error.message : error
-            }`,
-          );
-        }
       },
     });
   }
